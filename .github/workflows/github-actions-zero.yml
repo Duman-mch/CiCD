@@ -1,7 +1,6 @@
 name: CI Pipeline
-
 on:
-  pull_request:
+  pull_request: 
     branches:
       - main
 
@@ -18,9 +17,24 @@ jobs:
         with:
           python-version: 3.8
       
-      - name: Install dependencies
+            - name: Install dependencies
         run: pip install -r requirements.txt
       
+      - name: Run linting
+        run: pylint your_app_directory || echo  "Linting failed" >> failure.log
+      
+      - name: Vulnerability scanning
+        run: bandit -r your_app_directory || echo  "Vulnerability scan failed" >> failure.log
+      
+      - name: Run tests
+        run: pytest tests/ --junitxml=test-report.xml || echo  "Tests failed" >> failure.log
+      
+      - name: Upload test reports
+        uses: actions/upload-artifact@v2
+        with:
+          name: test-reports
+          path: test-report.xml
+          
       - name: Push to Docker Hub
         if: success()
         run: |
@@ -42,7 +56,7 @@ jobs:
         with:
           status: 'failure'
           author_name: ${{ github.actor }}
-          text: "Linting or vulnerability scan failure detected in the CI pipeline."
+          text: "Test or linting failure detected in the CI pipeline."
           color: '#FF0000'
           fields: failure.log
           channel: '#your-slack-channel'
